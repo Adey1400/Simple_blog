@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Editor } from '@tinymce/tinymce-react';
+
 function BlogForm({ addBlog, setView }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -53,7 +54,7 @@ function BlogForm({ addBlog, setView }) {
       <div>
         <label className="block mb-1 text-sm font-medium text-gray-700">Content</label>
         <Editor
-          apiKey='im4gdwalk404a2x1as3j7oqqz47g3es0napw2on3bgqi3hku'
+            apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
           onInit={(evt, editor) => (editorRef.current = editor)}
           init={{
             height: 300,
