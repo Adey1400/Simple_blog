@@ -1,7 +1,8 @@
 import React, { useRef, useState } from "react";
 import { Editor } from "@tinymce/tinymce-react";
-
+import { useNavigate } from "react-router-dom";
 function BlogForm({ addBlog, setView }) {
+  const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
@@ -24,7 +25,7 @@ function BlogForm({ addBlog, setView }) {
       setTitle("");
       editorRef.current.setContent("");
       setError("");
-      setView("home");
+      navigate ("/");
     } catch (err) {
       setError(err.message);
     }

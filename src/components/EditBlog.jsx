@@ -1,10 +1,19 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Editor } from "@tinymce/tinymce-react";
-
-function EditBlog({ updateBlog, setView, blog }) {
+import { useParams, useNavigate } from "react-router-dom";
+function EditBlog({ updateBlog,  blogs }) {
+  const {id}= useParams();
+  const blog = blogs.find((b) => b.id === id);
+  const navigate = useNavigate();
   const [title, setTitle] = useState(blog.title);
   const [error, setError] = useState("");
   const editorRef = useRef();
+   
+    useEffect(() => {
+    if (blog) {
+      setTitle(blog.title);
+    }
+  }, [blog]);
 
   const handleUpdate = (e) => {
     e.preventDefault();
@@ -18,8 +27,21 @@ function EditBlog({ updateBlog, setView, blog }) {
       title,
       content: updateContent,
     });
-    setView("home");
+    navigate(`/blog/${id}`)
   };
+   if (!blog) {
+    return (
+      <div className="text-center text-gray-500 mt-6">
+        ❌ Blog not found.
+        <button
+          className="ml-2 underline text-blue-600"
+          onClick={() => navigate("/")}
+        >
+          Go Home
+        </button>
+      </div>
+    );
+  }
   return (
    <form
   onSubmit={handleUpdate}
@@ -65,7 +87,7 @@ function EditBlog({ updateBlog, setView, blog }) {
   <div className="flex flex-col sm:flex-row justify-between gap-4">
     <button
       type="button"
-      onClick={() => setView("home")}
+      onClick={() => navigate(`/blog/${id}`)}
       className="text-gray-600 border border-gray-300 px-4 sm:px-6 py-2 rounded-lg hover:bg-gray-100 transition-all w-full sm:w-auto"
     >
       Cancel

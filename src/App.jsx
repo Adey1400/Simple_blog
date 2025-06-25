@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes,Route } from "react-router-dom";
 import "./App.css";
 import Header from "./components/Header";
 import BlogForm from "./components/BlogForm";
@@ -42,29 +43,24 @@ function App() {
   };
   return (
     <>
-      <Header view={view} setView={setView} />
-
-      {view === "home" && (
-        <BlogList
-          blogs={blogs}
-          onBlogClick={handleBlogClick}
-          onDelete={deleteBlog}
+ <Router>
+      <Header />
+      <Routes>
+        <Route
+          path="/"
+          element={<BlogList blogs={blogs} onDelete={deleteBlog} />}
         />
-      )}
-
-      {view === "create" && <BlogForm addBlog={addBlog} setView={setView} />}
-
-      {view === "details" && (
-        <BlogDetails blog={selectedBlog} setView={setView} />
-      )}
-
-      {view === "edit" && selectedBlog && (
-        <EditBlog
-          blog={selectedBlog}
-          updateBlog={updateBlog}
-          setView={setView}
+        <Route path="/create" element={<BlogForm addBlog={addBlog} />} />
+        <Route
+          path="/blog/:id"
+          element={<BlogDetails blogs={blogs} onDelete={deleteBlog} />}
         />
-      )}
+        <Route
+          path="/edit/:id"
+          element={<EditBlog blogs={blogs} updateBlog={updateBlog} />}
+        />
+      </Routes>
+    </Router>
     </>
   );
 }
