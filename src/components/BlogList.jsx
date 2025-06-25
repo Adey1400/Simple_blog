@@ -18,7 +18,7 @@ function BlogList({ blogs, onBlogClick, onDelete }) {
           className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-50 hover:bg-white"
         >
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4">
-           <Link
+            <Link
                   to={`/blog/${blog.id}`}
                   className="text-left flex-1 block"
                 >
