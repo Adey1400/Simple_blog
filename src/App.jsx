@@ -35,9 +35,7 @@ function App() {
     <Router>
       <Header />
       <main className="min-h-screen">
-        {blogs.length === 0 && (
-          <p className="text-center text-gray-500 mt-10">Loading blogs...</p>
-        )}
+       
 
         <Routes>
           <Route
