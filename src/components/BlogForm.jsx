@@ -59,25 +59,29 @@ function BlogForm({ addBlog, setView }) {
     <label className="block mb-1 text-sm font-medium text-gray-700">
       Content
     </label>
-    <Editor
-      apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
-      onInit={(evt, editor) => (editorRef.current = editor)}
-      init={{
-        height: 300,
-        menubar: false,
-        plugins: [
-          "advlist autolink lists link image charmap preview anchor",
-          "searchreplace visualblocks code fullscreen",
-          "insertdatetime media table paste help wordcount",
-        ],
-        toolbar:
-          "undo redo | formatselect | bold italic underline | " +
-          "alignleft aligncenter alignright alignjustify | " +
-          "bullist numlist outdent indent | link image | removeformat",
-        content_style:
-          "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
-      }}
-    />
+   <Editor
+  apiKey={import.meta.env.VITE_TINYMCE_API_KEY} // Or use your actual API key as a string temporarily
+  init={{
+    height: 300,
+    menubar: false,
+   plugins: [
+  "advlist",
+  "autolink",
+  "lists",
+  "link",
+  "image",
+  "preview",
+  "anchor"
+],
+toolbar:
+  'undo redo | formatselect | bold italic underline | ' +
+  'alignleft aligncenter alignright alignjustify | ' +
+  'bullist numlist | link image',
+    content_style:
+      'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
+  }}
+  onInit={(evt, editor) => (editorRef.current = editor)}
+/>
   </div>
 
   <div className="flex justify-center sm:justify-end">

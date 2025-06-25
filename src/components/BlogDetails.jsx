@@ -1,8 +1,12 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-function BlogDetails({ blog, setView }) {
-  const id = useParams()
+function BlogDetails({ blogs, }) {
+  const{id} = useParams()
+   const blog = blogs.find((b) => b.id === Number(id)); 
+   console.log("Matched blog:", blog);
   const navigate = useNavigate()
+  console.log("Route ID:", id);
+console.log("All blogs:", blogs);
   if (!blog) {
     return (
       <div className="w-full max-w-2xl mx-auto mt-6 px-4 sm:px-6 md:px-8 bg-white p-6 sm:p-8 rounded-xl shadow-md text-center">
