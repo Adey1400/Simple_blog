@@ -2,7 +2,7 @@ import { createContext } from "react";
 import { useContext, useState, useEffect } from "react";
 import { ID } from "appwrite";
 import { account } from "../appwriteConfig";
-
+import LoadingSpinner from "../pages/Loading";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -11,20 +11,24 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     checkUserStatus();
   }, []);
-  const loginUser = async (userInfo) => {
-    setLoading(true);
-    try {
-      await account.createEmailPasswordSession(
-        userInfo.email,
-        userInfo.password
-      );
-      const accountDetails= await account.get()
-      setUser(accountDetails);
-    } catch (error) {
-      console.log(error);
-    }
-    setLoading(false);
-  };
+ const loginUser = async (userInfo) => {
+  setLoading(true);
+  try {
+    await account.createEmailPasswordSession(
+      userInfo.email,
+      userInfo.password
+    );
+    const accountDetails = await account.get();
+    setUser(accountDetails);
+  } catch (error) {
+    console.log(error);
+    throw error; // important so that the component can catch it
+  } finally {
+    setLoading(false); // ✅ always stop spinner regardless of success or error
+  }
+};
+
+
   const logoutUser = () => {
     account.deleteSession("current");
     setUser(null);
@@ -69,7 +73,7 @@ export const AuthProvider = ({ children }) => {
   };
   return (
     <AuthContext.Provider value={contextData}>
-      {loading ? <p>Loading</p> : children}
+     {loading ? <LoadingSpinner /> : children}
     </AuthContext.Provider>
   );
 };
