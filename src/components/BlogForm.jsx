@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 function BlogForm({ addBlog, setView }) {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+
   const [error, setError] = useState("");
   const editorRef = useRef(null);
   const handleSubmit = (e) => {
