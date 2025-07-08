@@ -10,6 +10,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { PrivateRoutes } from "./utils/PrivatesRoutes";
 import { AuthProvider } from "./utils/AuthContext";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   const [blogs, setBlogs] = useState(() => {
@@ -60,6 +62,16 @@ function App() {
             <Route path="/register" element={<Register />} />
           </Routes>
         </main>
+         <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          pauseOnHover
+          draggable
+          theme="light"
+        />
       </Router>
     </AuthProvider>
   );

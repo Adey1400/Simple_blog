@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../utils/AuthContext";
+import { toast } from "react-toastify";
 
 const Login = () => {
   const { user, loginUser } = useAuth();
@@ -33,14 +34,16 @@ const handleSubmit = async (e) => {
   const userInfo = { email, password };
 try {
     await loginUser(userInfo);
+    toast.success("Login Succesful")
+    setTimeout(() => navigate("/"), 1000);
   } catch (err) {
     if (err.message.includes("Invalid credentials")) {
-      setError("Incorrect email or password.");
+    toast.error("Incorrect email or password.");
     } else {
-      setError("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
     }
   } finally {
-    setLoading(false); // ensure spinner stops
+    setLoading(false); 
   }
 };
 

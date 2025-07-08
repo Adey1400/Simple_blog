@@ -22,9 +22,9 @@ export const AuthProvider = ({ children }) => {
     setUser(accountDetails);
   } catch (error) {
     console.log(error);
-    throw error; // important so that the component can catch it
+    throw error; 
   } finally {
-    setLoading(false); // ✅ always stop spinner regardless of success or error
+    setLoading(false); 
   }
 };
 
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
   };
   return (
     <AuthContext.Provider value={contextData}>
-     {loading ? <LoadingSpinner /> : children}
+{children}
     </AuthContext.Provider>
   );
 };
