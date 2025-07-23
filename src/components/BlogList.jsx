@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { database, DATABASE_ID, COLLECTION_ID, account } from "../appwriteConfig";
+import {
+  database,
+  DATABASE_ID,
+  COLLECTION_ID,
+  account,
+} from "../appwriteConfig";
 
 import { IoTimeOutline, IoTrashOutline } from "react-icons/io5";
 import { FiArrowRight } from "react-icons/fi";
@@ -28,24 +33,24 @@ function BlogList() {
     return Break;
   };
 
-   // Fetch current user details
-   const getAuthorName = (blog) => {
+  // Fetch current user details
+  const getAuthorName = (blog) => {
     // First try to use the stored authorName
     if (blog.authorName && blog.authorName.trim() !== "") {
       return blog.authorName;
     }
-    
+
     // If no authorName and this is the current user's blog, use current user info
     if (currentUser && blog.userId === currentUser.$id) {
       return currentUser.name || currentUser.email || "You";
     }
-    
+
     // Fallback to Unknown Author
     return "Unknown Author";
   };
 
   useEffect(() => {
-     const fetchCurrentUser = async () => {
+    const fetchCurrentUser = async () => {
       try {
         const user = await account.get();
         setCurrentUser(user);
@@ -65,7 +70,7 @@ function BlogList() {
         setLoading(false);
       }
     };
-    fetchCurrentUser()
+    fetchCurrentUser();
     fetchBlogs();
   }, []);
 
@@ -124,13 +129,8 @@ function BlogList() {
                 <h2 className="text-lg font-bold text-gray-800 line-clamp-2 mb-3">
                   {blog.title}
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                ✍️ By: {getAuthorName(blog)}
-                </p>
-                <div className="flex justify-between items-center text-sm text-gray-500">
-                  <span className="bg-gray-100 px-2 py-1 rounded">
-                      {getAuthorName(blog)}
-                  </span>
+                <div className="flex bg-gray justify-between items-center text-sm text-gray-500 mt-1">
+                  <p className="bg-gray-100 px-2 py-1 rounded hover:bg-gray-300">✍️ By: {getAuthorName(blog)}</p>
                   <div className="flex items-center">
                     <IoTimeOutline className="mr-1" />
                     {new Date(blog.$createdAt).toLocaleDateString()}
