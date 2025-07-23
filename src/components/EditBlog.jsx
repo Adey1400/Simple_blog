@@ -1,9 +1,9 @@
 import React, { useRef, useState, useEffect } from "react";
+import { ID } from "appwrite";
 import { Editor } from "@tinymce/tinymce-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify"; 
-import { database , DATABASE_ID , COLLECTION_ID} from "../appwriteConfig"; 
-
+import { database, DATABASE_ID, COLLECTION_ID, storage, BUCKET_ID } from "../appwriteConfig"; 
 
 function EditBlog({ updateBlog, blogs }) {
   const { id } = useParams();
@@ -110,20 +110,92 @@ function EditBlog({ updateBlog, blogs }) {
             height: 300,
             menubar: false,
             plugins: [
-              "advlist",
-              "autolink",
-              "lists",
-              "link",
-              "image",
-              "preview",
-              "anchor",
+              "advlist", "autolink", "lists", "link", "image", "preview", "anchor", "searchreplace", "wordcount"
             ],
             toolbar:
               "undo redo | formatselect | bold italic underline | " +
               "alignleft aligncenter alignright alignjustify | " +
-              "bullist numlist | link image",
+              "bullist numlist | link image | preview",
             content_style:
               "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
+            automatic_uploads: true,
+            file_picker_types: "image",
+            file_picker_callback: function (cb, value, meta) {
+              if (meta.filetype === 'image') {
+                const input = document.createElement('input');
+                input.setAttribute('type', 'file');
+                input.setAttribute('accept', 'image/*');
+
+                input.onchange = async function () {
+                  const file = input.files[0];
+                  if (!file) return;
+
+                  // Show loading toast
+                  const loadingToast = toast.loading("Uploading image...");
+
+                  try {
+                    // Validate file size (5MB limit)
+                    if (file.size > 5 * 1024 * 1024) {
+                      throw new Error('Image size must be less than 5MB');
+                    }
+
+                    // Validate file type
+                    if (!file.type.startsWith('image/')) {
+                      throw new Error('Please select a valid image file');
+                    }
+
+                    const fileId = ID.unique();
+                    
+                    // Upload file to Appwrite storage
+                    await storage.createFile(BUCKET_ID, fileId, file);
+                    
+                    // Generate the image URL
+                    const imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+                    
+                    console.log('Image uploaded successfully:', imageUrl);
+                    
+                    // Dismiss loading toast and show success
+                    toast.dismiss(loadingToast);
+                    toast.success("Image uploaded successfully!");
+                    
+                    // Pass the URL to TinyMCE
+                    cb(imageUrl, { title: file.name });
+                    
+                  } catch (err) {
+                    console.error("Image upload failed:", err);
+                    toast.dismiss(loadingToast);
+                    toast.error(`Image upload failed: ${err.message}`);
+                  }
+                };
+
+                input.click();
+              }
+            },
+            images_upload_handler: function (blobInfo, success, failure) {
+              // Alternative upload handler
+              const uploadImage = async () => {
+                try {
+                  const file = blobInfo.blob();
+                  
+                  // Validate file size
+                  if (file.size > 5 * 1024 * 1024) {
+                    throw new Error('Image size must be less than 5MB');
+                  }
+
+                  const fileId = ID.unique();
+                  await storage.createFile(BUCKET_ID, fileId, file);
+                  
+                  const imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+                  
+                  success(imageUrl);
+                } catch (error) {
+                  console.error('Upload error:', error);
+                  failure(`Upload failed: ${error.message}`);
+                }
+              };
+
+              uploadImage();
+            }
           }}
           onInit={(evt, editor) => (editorRef.current = editor)}
         />
