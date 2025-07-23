@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { PrivateRoutes } from "./utils/PrivatesRoutes";
 import { AuthProvider } from "./utils/AuthContext";
+import DebugInfo from "./components/DebugInfo";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -72,6 +73,7 @@ function App() {
           draggable
           theme="light"
         />
+        <DebugInfo />
       </Router>
     </AuthProvider>
   );

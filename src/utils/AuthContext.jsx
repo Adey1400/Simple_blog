@@ -60,6 +60,15 @@ export const AuthProvider = ({ children }) => {
     setUser(accountDetails);
   } catch (error) {
     console.log("No active session:", error.message);
+    
+    // Check if it's a configuration error
+    if (error.message.includes('Invalid endpoint') || error.message.includes('Invalid project')) {
+      console.error("❌ Appwrite configuration error. Please check your environment variables:");
+      console.error("- VITE_APPWRITE_ENDPOINT");
+      console.error("- VITE_APPWRITE_PROJECT_ID");
+      console.error("- Make sure your .env file exists and contains valid Appwrite credentials");
+    }
+    
     setUser(null); // 🔐 Ensure user is null if not logged in
   } finally {
     setLoading(false); // ✅ Always stop loading
