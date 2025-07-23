@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { database, DATABASE_ID, COLLECTION_ID } from "../appwriteConfig";
+import { database, DATABASE_ID, COLLECTION_ID, account } from "../appwriteConfig";
+
 import { IoTimeOutline, IoTrashOutline } from "react-icons/io5";
 import { FiArrowRight } from "react-icons/fi";
 import { toast } from "react-toastify";
@@ -13,7 +14,7 @@ import {
 function BlogList() {
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [currentUser, setCurrentUser] = useState(null);
   const getPreviewImage = (blog) => {
     if (blog.imageUrl) {
       return blog.imageUrl;
@@ -27,7 +28,32 @@ function BlogList() {
     return Break;
   };
 
+   // Fetch current user details
+   const getAuthorName = (blog) => {
+    // First try to use the stored authorName
+    if (blog.authorName && blog.authorName.trim() !== "") {
+      return blog.authorName;
+    }
+    
+    // If no authorName and this is the current user's blog, use current user info
+    if (currentUser && blog.userId === currentUser.$id) {
+      return currentUser.name || currentUser.email || "You";
+    }
+    
+    // Fallback to Unknown Author
+    return "Unknown Author";
+  };
+
   useEffect(() => {
+     const fetchCurrentUser = async () => {
+      try {
+        const user = await account.get();
+        setCurrentUser(user);
+      } catch (error) {
+        // User not logged in, which is fine
+        setCurrentUser(null);
+      }
+    };
     const fetchBlogs = async () => {
       try {
         const res = await database.listDocuments(DATABASE_ID, COLLECTION_ID);
@@ -39,7 +65,7 @@ function BlogList() {
         setLoading(false);
       }
     };
-
+    fetchCurrentUser()
     fetchBlogs();
   }, []);
 
@@ -99,11 +125,11 @@ function BlogList() {
                   {blog.title}
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  ✍️ By: {blog.authorName || "Unknown Author"}
+                ✍️ By: {getAuthorName(blog)}
                 </p>
                 <div className="flex justify-between items-center text-sm text-gray-500">
                   <span className="bg-gray-100 px-2 py-1 rounded">
-                    {blog.authorName || "Unknown"}
+                      {getAuthorName(blog)}
                   </span>
                   <div className="flex items-center">
                     <IoTimeOutline className="mr-1" />
