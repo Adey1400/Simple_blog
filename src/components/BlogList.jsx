@@ -149,13 +149,16 @@ function BlogList() {
                 >
                   Read More <FiArrowRight className="ml-1" />
                 </Link>
-                <button
+                {currentUser && currentUser.$id === blog.userId &&(
+ <button
                   onClick={() => handleDelete(blog.$id)}
                   className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50"
                   title="Delete Blog"
                 >
                   <IoTrashOutline size={20} />
                 </button>
+                )}
+                
               </div>
             </div>
           </div>

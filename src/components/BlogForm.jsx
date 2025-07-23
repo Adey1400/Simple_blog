@@ -1,216 +1,191 @@
-import React, { useEffect, useRef, useState } from "react";
-import { ID } from "appwrite";
+import React, { useRef, useState } from "react";
 import { Editor } from "@tinymce/tinymce-react";
+import { ID, Permission, Role } from "appwrite";
 import { useNavigate } from "react-router-dom";
+import {
+  database,
+  storage,
+  DATABASE_ID,
+  COLLECTION_ID,
+  BUCKET_ID,
+} from "../appwriteConfig";
 import { toast } from "react-toastify";
-import { database, DATABASE_ID, COLLECTION_ID, storage, BUCKET_ID , account} from "../appwriteConfig";
-import "./tiny.css"
-function BlogForm({ addBlog }) {
+
+function BlogForm({ user }) {
+  const editorRef = useRef(null);
   const navigate = useNavigate();
+
   const [blog, setBlog] = useState({
     title: "",
     content: "",
-    userId: "",
-    authorName: "",
-    imageUrl: "", 
+    userId: user?.$id || "",
+    authorName: user?.name || "",
+    imageUrl: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const editorRef = useRef(null);
 
-
-  //fetch user details
- 
-  useEffect(()=>{
-     const fetchUserDetails = async () => {
-  try{
-     const user = await account.get();
-     setBlog((prev)=>({
-      ...prev,
-      userId: user.$id,
-      authorName:user.name || user.email, // Fallback to email if name is not available
-     }))
-  }catch(error) {
-    console.error("Error fetching user details:", error);
-
-  }
-}
-    fetchUserDetails()
-  },[])
-  
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!blog.title.trim()) {
+      setError("Title is required.");
+      return;
+    }
+
+    setError("");
     setLoading(true);
 
+    const permissions = [
+      Permission.read(Role.user(user.$id)),
+      Permission.update(Role.user(user.$id)),
+      Permission.delete(Role.user(user.$id)),
+    ];
+
     try {
-      await database.createDocument(DATABASE_ID, COLLECTION_ID, ID.unique(), {
-        title: blog.title,
-        content: editorRef.current.getContent(),
-        userId: blog.userId,
-        authorName:blog.authorName,
-        imageUrl: blog.imageUrl, // Optional
-      });
+      if (editorRef.current) {
+        blog.content = editorRef.current.getContent();
+      }
 
-      setBlog({
-        title: "",
-        content: "",
-        userId: "",
-        authorName: "",
-        imageUrl: "",
-      });
+      const response = await database.createDocument(
+        DATABASE_ID,
+        COLLECTION_ID,
+        ID.unique(),
+        {
+          title: blog.title,
+          content: blog.content,
+          userId: blog.userId,
+          authorName: blog.authorName,
+          imageUrl: blog.imageUrl,
+        },
+        permissions
+      );
 
-      editorRef.current.setContent("");
-      toast.success("Blog posted successfully!");
-    } catch (error) {
-      console.error("Failed to save blog:", error);
-      toast.error("Error saving blog.");
+      toast.success("Blog published successfully!");
+      navigate(`/blogs/${response.$id}`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to publish blog.");
+    } finally {
+      setLoading(false);
+      if (editorRef.current) {
+        editorRef.current.setMode("design");
+      }
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLoading(true);
+    try {
+      const uploadedFile = await storage.createFile(
+        BUCKET_ID,
+        ID.unique(),
+        file
+      );
+      const url = storage.getFilePreview(BUCKET_ID, uploadedFile.$id).href;
+      setBlog((prev) => ({ ...prev, imageUrl: url }));
+      toast.success("Image uploaded!");
+    } catch (err) {
+      console.error("Upload failed:", err);
+      toast.error("Image upload failed.");
     } finally {
       setLoading(false);
     }
   };
 
-
-
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="w-full max-w-3xl mx-auto mt-8 bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-md space-y-6"
-    >
-      <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 text-center sm:text-left">
-        📝 Create New Blog
-      </h2>
+    <div className="max-w-3xl mx-auto p-6 bg-white shadow-xl rounded-lg mt-10">
+      <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">
+        Create a New Blog
+      </h1>
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-
-      <div>
-        <label className="block mb-1 text-sm font-medium text-gray-700">
-          Title
-        </label>
-        <input
-          type="text"
-          value={blog.title}
-          onChange={(e) =>
-            setBlog((prev) => ({ ...prev, title: e.target.value }))
-          }
-          className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-          placeholder="Enter blog title"
-        />
-      </div>
-
-      <div>
-        <label className="block mb-1 text-sm font-medium text-gray-700">
-          Content
-        </label>
- <Editor
-  apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
-  onInit={(evt, editor) => (editorRef.current = editor)}
-  init={{
-    height: 300,
-    menubar: false,
-    plugins: [
-      "advlist", "autolink", "lists", "link", "image", "preview", "anchor", "searchreplace", "wordcount"
-    ],
-    toolbar:
-      "undo redo | formatselect | bold italic | " +
-      "alignleft aligncenter alignright | bullist numlist | link image | preview",
-
-    content_style: `
-      body {
-        font-family: Helvetica, Arial, sans-serif;
-        font-size: 14px;
-      }
-      img {
-        max-width: 100%;
-        height: auto;
-        display: block;
-        margin: 1rem auto;
-      }
-    `,
-
-    automatic_uploads: true,
-    file_picker_types: "image",
-    
-    file_picker_callback: function (cb, value, meta) {
-      if (meta.filetype === 'image') {
-        const input = document.createElement('input');
-        input.setAttribute('type', 'file');
-        input.setAttribute('accept', 'image/*');
-
-        input.onchange = async function () {
-          const file = input.files[0];
-          if (!file) return;
-
-          const loadingToast = toast.loading("Uploading image...");
-
-          try {
-            if (file.size > 5 * 1024 * 1024) {
-              throw new Error('Image size must be less than 5MB');
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block mb-1 text-sm font-medium text-gray-700">
+            Title
+          </label>
+          <input
+            type="text"
+            value={blog.title}
+            onChange={(e) =>
+              setBlog({ ...blog, title: e.target.value })
             }
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Enter blog title..."
+            disabled={loading}
+          />
+          {error && (
+            <p className="text-red-500 text-sm mt-1">{error}</p>
+          )}
+        </div>
 
-            if (!file.type.startsWith('image/')) {
-              throw new Error('Please select a valid image file');
+        <div>
+          <label className="block mb-1 text-sm font-medium text-gray-700">
+            Content
+          </label>
+          <Editor
+            apiKey={import.meta.env.VITE_TINY_API_KEY}
+            onInit={(evt, editor) => (editorRef.current = editor)}
+            init={{
+              height: 400,
+              menubar: false,
+              plugins: "link image code preview emoticons",
+              toolbar:
+                "undo redo | bold italic underline | alignleft aligncenter alignright | bullist numlist | link image | preview emoticons",
+              placeholder: "Write your blog here...",
+            }}
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1 text-sm font-medium text-gray-700">
+            Upload Image (optional)
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            disabled={loading}
+          />
+          {blog.imageUrl && (
+            <img
+              src={blog.imageUrl}
+              alt="Uploaded preview"
+              className="mt-3 w-full h-48 object-cover rounded-lg"
+            />
+          )}
+        </div>
+
+        <div>
+          <label className="block mb-1 text-sm font-medium text-gray-700">
+            Featured Image URL (optional)
+          </label>
+          <input
+            type="text"
+            value={blog.imageUrl}
+            onChange={(e) =>
+              setBlog({ ...blog, imageUrl: e.target.value })
             }
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="https://example.com/your-image.jpg"
+            disabled={loading}
+          />
+        </div>
 
-            const fileId = ID.unique();
-            await storage.createFile(BUCKET_ID, fileId, file);
-
-            const imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
-            
-            toast.dismiss(loadingToast);
-            toast.success("Image uploaded successfully!");
-
-            cb(imageUrl, { title: file.name });
-
-          } catch (err) {
-            console.error("Image upload failed:", err);
-            toast.dismiss(loadingToast);
-            toast.error(`Image upload failed: ${err.message}`);
-          }
-        };
-
-        input.click();
-      }
-    },
-
-    images_upload_handler: function (blobInfo, success, failure) {
-      const uploadImage = async () => {
-        try {
-          const file = blobInfo.blob();
-
-          if (file.size > 5 * 1024 * 1024) {
-            throw new Error('Image size must be less than 5MB');
-          }
-
-          const fileId = ID.unique();
-          await storage.createFile(BUCKET_ID, fileId, file);
-
-          const imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
-
-          success(imageUrl);
-        } catch (error) {
-          console.error('Upload error:', error);
-          failure(`Upload failed: ${error.message}`);
-        }
-      };
-
-      uploadImage();
-    }
-  }}
-/>
-
-      </div>
-
-      <div className="flex justify-center sm:justify-end">
         <button
           type="submit"
           disabled={loading}
-            className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-all w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 disabled:bg-gray-400"
         >
-          {loading ? "Posting..." : "Add Blog"}
+          {loading ? "Publishing..." : "Publish Blog"}
         </button>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }
 

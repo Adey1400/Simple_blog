@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { database, DATABASE_ID, COLLECTION_ID, account } from "../appwriteConfig";
+import {
+  database,
+  DATABASE_ID,
+  COLLECTION_ID,
+  account,
+} from "../appwriteConfig";
 import { toast } from "react-toastify";
 import Blog from "../assets/Breaking.jpg";
 import { extractFirstImageFromContent } from "../utils/extractImage";
@@ -10,7 +15,7 @@ function BlogDetails() {
   const navigate = useNavigate();
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);
-const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   //image preview function
   const getPreviewImage = (blog) => {
     if (blog.imageUrl) return blog.imageUrl;
@@ -20,27 +25,26 @@ const [currentUser, setCurrentUser] = useState(null);
     return Blog;
   };
 
- const getAuthorName = (blog) => {
+  const getAuthorName = (blog) => {
     // First try to use the stored authorName
     if (blog.authorName && blog.authorName.trim() !== "") {
       return blog.authorName;
     }
-    
+
     // If no authorName and this is the current user's blog, use current user info
     if (currentUser && blog.userId === currentUser.$id) {
       return currentUser.name || currentUser.email || "You";
     }
-    
+
     // Fallback to Unknown Author
     return "Unknown Author";
   };
 
-
   const cleanedContent = blog?.content
-  ? blog.content.replace(/<img[^>]*>/g, '')
-  : '';
+    ? blog.content.replace(/<img[^>]*>/g, "")
+    : "";
   useEffect(() => {
-     const fetchCurrentUser = async () => {
+    const fetchCurrentUser = async () => {
       try {
         const user = await account.get();
         setCurrentUser(user);
@@ -60,7 +64,7 @@ const [currentUser, setCurrentUser] = useState(null);
         setLoading(false);
       }
     };
-        fetchCurrentUser();
+    fetchCurrentUser();
     fetchBlog();
   }, [id]);
 
@@ -94,9 +98,9 @@ const [currentUser, setCurrentUser] = useState(null);
         src={getPreviewImage(blog)}
         alt="cover"
         className="w-full h-64 object-cover rounded-lg"
-         onError={(e) => {
-         e.target.src = Blog;
-  }}
+        onError={(e) => {
+          e.target.src = Blog;
+        }}
       />
 
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
@@ -120,13 +124,14 @@ const [currentUser, setCurrentUser] = useState(null);
         >
           ⬅ Back to Home
         </button>
-
-        <button
-          onClick={() => navigate(`/edit/${id}`)}
-          className="text-yellow-600 hover:text-yellow-700 text-sm font-medium"
-        >
-          ✏️ Edit
-        </button>
+        {currentUser && currentUser.$id === blog.userId && (
+          <button
+            onClick={() => navigate(`/edit/${id}`)}
+            className="text-yellow-600 hover:text-yellow-700 text-sm font-medium"
+          >
+            ✏️ Edit
+          </button>
+        )}
       </div>
     </div>
   );
