@@ -1,52 +1,78 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Editor } from "@tinymce/tinymce-react";
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify"; 
+import { database , DATABASE_ID , COLLECTION_ID} from "../appwriteConfig"; 
+
 
 function EditBlog({ updateBlog, blogs }) {
-  const { id } = useParams(); // ✅ get blog ID from URL
+  const { id } = useParams();
   const navigate = useNavigate();
 
-  const blog = blogs.find((b) => b.id === Number(id)); // ✅ match blog by number
+  const [blog, setBlog] = useState({
+    title: "",
+    content: "",
+    userId: "",
+    authorName: "",
+    imageUrl: "",
+  });
 
-  const [title, setTitle] = useState(blog ? blog.title : "");
   const [error, setError] = useState("");
   const editorRef = useRef();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (blog) {
-      setTitle(blog.title);
-    }
-  }, [blog]);
+    const fetchBlog = async () => {
+      try {
+        const res = await database.getDocument(DATABASE_ID, COLLECTION_ID, id);
+        setBlog({
+          title: res.title,
+          content: res.content,
+          userId: res.userId,
+          authorName: res.authorName,
+          imageUrl: res.imageUrl || "",
+        });
+      } catch (error) {
+        console.error("Error fetching blog:", error);
+        toast.error("Blog not found");
+        navigate("/");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleUpdate = (e) => {
+    fetchBlog();
+  }, [id, navigate]);
+
+  const handleUpdate = async (e) => {
     e.preventDefault();
     const updateContent = editorRef.current.getContent();
 
-    if (!title.trim() || !updateContent.trim()) {
+    if (!blog.title.trim() || !updateContent.trim()) {
       setError("Title and content are required");
       return;
     }
 
-    updateBlog({
-      ...blog,
-      title,
-      content: updateContent,
-    });
+    try {
+      await database.updateDocument(DATABASE_ID, COLLECTION_ID, id, {
+        title: blog.title,
+        content: updateContent,
+        userId: blog.userId,
+        authorName: blog.authorName,
+        imageUrl: blog.imageUrl,
+      });
 
-    navigate(`/blog/${id}`);
+      toast.success("Blog updated successfully!");
+      navigate(`/blog/${id}`);
+    } catch (error) {
+      toast.error("Failed to update blog");
+      console.error("Failed to update blog", error);
+    }
   };
 
-  if (!blog) {
+  if (loading) {
     return (
-      <div className="text-center text-gray-500 mt-6">
-        ❌ Blog not found.
-        <button
-          className="ml-2 underline text-blue-600"
-          onClick={() => navigate("/")}
-        >
-          Go Home
-        </button>
-      </div>
+      <div className="text-center text-gray-500 mt-6">⏳ Loading blog...</div>
     );
   }
 
@@ -66,8 +92,8 @@ function EditBlog({ updateBlog, blogs }) {
           Title
         </label>
         <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          value={blog.title}
+          onChange={(e) => setBlog({ ...blog, title: e.target.value })}
           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
           placeholder="Enter updated title"
         />
@@ -77,29 +103,30 @@ function EditBlog({ updateBlog, blogs }) {
         <label className="block text-sm font-medium mb-1 text-gray-700">
           Content
         </label>
-       <Editor
-  apiKey={import.meta.env.VITE_TINYMCE_API_KEY} // Or use your actual API key as a string temporarily
-  init={{
-    height: 300,
-    menubar: false,
-  plugins: [
-  "advlist",
-  "autolink",
-  "lists",
-  "link",
-  "image",
-  "preview",
-  "anchor"
-],
-toolbar:
-  'undo redo | formatselect | bold italic underline | ' +
-  'alignleft aligncenter alignright alignjustify | ' +
-  'bullist numlist | link image',
-    content_style:
-      'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
-  }}
-  onInit={(evt, editor) => (editorRef.current = editor)}
-/>
+        <Editor
+          apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
+          initialValue={blog.content}
+          init={{
+            height: 300,
+            menubar: false,
+            plugins: [
+              "advlist",
+              "autolink",
+              "lists",
+              "link",
+              "image",
+              "preview",
+              "anchor",
+            ],
+            toolbar:
+              "undo redo | formatselect | bold italic underline | " +
+              "alignleft aligncenter alignright alignjustify | " +
+              "bullist numlist | link image",
+            content_style:
+              "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
+          }}
+          onInit={(evt, editor) => (editorRef.current = editor)}
+        />
       </div>
 
       <div className="flex flex-col sm:flex-row justify-between gap-4">

@@ -1,43 +1,109 @@
-import React from 'react';
-import DeleteButton from './DeleteBlog';
-import { Link } from 'react-router-dom';
-function BlogList({ blogs, onBlogClick, onDelete }) {
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { database, DATABASE_ID, COLLECTION_ID } from "../appwriteConfig";
+import { IoTimeOutline, IoTrashOutline } from "react-icons/io5";
+import { FiArrowRight } from "react-icons/fi";
+import { toast } from "react-toastify";
+import Break from "../assets/Breaking.jpg"; // default image
+
+function BlogList() {
+  const [blogs, setBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const res = await database.listDocuments(DATABASE_ID, COLLECTION_ID);
+        setBlogs(res.documents);
+      } catch (error) {
+        console.error("Error fetching blogs:", error);
+        toast.error("Failed to load blogs.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBlogs();
+  }, []);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this blog?")) return;
+
+    try {
+      await database.deleteDocument(DATABASE_ID, COLLECTION_ID, id);
+      setBlogs((prev) => prev.filter((blog) => blog.$id !== id));
+      toast.success("Blog deleted successfully.");
+    } catch (error) {
+      console.error("Delete failed:", error);
+      toast.error("Failed to delete blog.");
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center text-gray-400 mt-6">Loading blogs...</div>;
+  }
+
+  if (blogs.length === 0) {
+    return <div className="text-center text-gray-400 mt-6">No blogs found.</div>;
+  }
+
   return (
-    <div className="w-full max-w-3xl mx-auto mt-6 px-4 sm:px-6 md:px-8 bg-white p-4 sm:p-6 rounded-xl shadow-md">
-  <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 text-center sm:text-left">
-    📚 All Blogs
-  </h2>
-
-  {blogs.length === 0 ? (
-    <p className="text-gray-500 italic text-center">No blog posted yet.</p>
-  ) : (
-    <ul className="space-y-4">
+    <div className="max-w-6xl mx-auto grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
       {blogs.map((blog) => (
-        <li
-          key={blog.id}
-          className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-50 hover:bg-white"
+        <div
+          key={blog.$id}
+          className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition duration-300 border border-gray-200 flex flex-col"
+          style={{ minHeight: '400px' }}
         >
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4">
-            <Link
-                  to={`/blog/${blog.id}`}
-                  className="text-left flex-1 block"
-                >
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                {blog.title}
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                Posted on {new Date(blog.createdAt).toLocaleString()}
-              </p>
-            </Link>
-
-            <DeleteButton onDelete={() => onDelete(blog.id)} />
+          {/* Image */}
+          <div className="h-48 overflow-hidden">
+            <img
+              src={blog.imageUrl || Break}
+              alt={blog.title}
+              className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+            />
           </div>
-        </li>
-      ))}
-    </ul>
-  )}
-</div>
 
+          {/* Content */}
+          <div className="p-4 flex flex-col flex-grow">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800 line-clamp-2">
+                {blog.title}
+              </h2>
+              <div className="flex justify-between items-center text-sm text-gray-500 mt-2">
+                <span className="bg-gray-100 px-2 py-1 rounded">
+                  {blog.authorName}
+                </span>
+                <div className="flex items-center">
+                  <IoTimeOutline className="mr-1" />
+                  {new Date(blog.$createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+
+            {/* Spacer to push buttons to bottom */}
+            <div className="flex-grow"></div>
+
+            {/* Read & Delete buttons */}
+            <div className="flex justify-between items-center pt-3 mt-4 border-t border-gray-100">
+              <Link
+                to={`/blog/${blog.$id}`}
+                className="text-blue-600 hover:text-blue-800 font-medium flex items-center"
+              >
+                Read More <FiArrowRight className="ml-1" />
+              </Link>
+              <button
+                onClick={() => handleDelete(blog.$id)}
+                className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50"
+                title="Delete Blog"
+              >
+                <IoTrashOutline size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
