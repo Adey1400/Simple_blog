@@ -81,75 +81,95 @@ function BlogForm({ addBlog }) {
           Content
         </label>
    <Editor
-  apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
-  onInit={(evt, editor) => (editorRef.current = editor)}
-  init={{
-    height: 300,
-    menubar: false,
-    plugins: [
-      "advlist", "autolink", "lists", "link", "image", "preview", "anchor"
-    ],
-    toolbar:
-      "undo redo | formatselect | bold italic | " +
-      "alignleft aligncenter alignright | bullist numlist | link image",
-    content_style:
-      "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
-    automatic_uploads: true,
-    file_picker_types: "image",
-   file_picker_callback: function (cb, value, meta) {
-  if (meta.filetype === 'image') {
-    const input = document.createElement('input');
-    input.setAttribute('type', 'file');
-    input.setAttribute('accept', 'image/*');
+          apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
+          onInit={(evt, editor) => (editorRef.current = editor)}
+          init={{
+            height: 300,
+            menubar: false,
+            plugins: [
+              "advlist", "autolink", "lists", "link", "image", "preview", "anchor", "searchreplace", "wordcount"
+            ],
+            toolbar:
+              "undo redo | formatselect | bold italic | " +
+              "alignleft aligncenter alignright | bullist numlist | link image | preview",
+            content_style:
+              "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
+            automatic_uploads: true,
+            file_picker_types: "image",
+            file_picker_callback: function (cb, value, meta) {
+              if (meta.filetype === 'image') {
+                const input = document.createElement('input');
+                input.setAttribute('type', 'file');
+                input.setAttribute('accept', 'image/*');
 
-    input.onchange = async function () {
-      const file = input.files[0];
-      if (!file) return;
+         input.onchange = async function () {
+                  const file = input.files[0];
+                  if (!file) return;
+ const loadingToast = toast.loading("Uploading image...");
 
-      try {
-        const fileId = ID.unique();
-        
+                  try {
+                    // Validate file size (5MB limit)
+                    if (file.size > 5 * 1024 * 1024) {
+                      throw new Error('Image size must be less than 5MB');
+                    }
 
-        await storage.createFile(BUCKET_ID, fileId, file);
-        
+                    // Validate file type
+                    if (!file.type.startsWith('image/')) {
+                      throw new Error('Please select a valid image file');
+                    }
 
-        let imageUrl;
-        
-
-        try {
-          const fileView = storage.getFileView(BUCKET_ID, fileId);
-          imageUrl = typeof fileView === 'string' ? fileView : fileView.href;
-        } catch (e) {
-          console.log("getFileView failed, trying getFilePreview");
-
-          const filePreview = storage.getFilePreview(BUCKET_ID, fileId);
-          imageUrl = typeof filePreview === 'string' ? filePreview : filePreview.href;
-        }
-        
-
-        if (!imageUrl || typeof imageUrl !== 'string') {
-          imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
-        }
-        
-
-        if (typeof imageUrl !== 'string') {
-          throw new Error('Failed to generate valid URL string');
-        }
-        
-        console.log('Final image URL:', imageUrl); // Debug log
-        
-//
-        cb(imageUrl);
-        
-      } catch (err) {
-        console.error("Image upload failed:", err);
-        toast.error(`Image upload failed: ${err.message}`);
-      }
-    };
+                    const fileId = ID.unique();
+                    
+                    // Upload file to Appwrite storage
+                    await storage.createFile(BUCKET_ID, fileId, file);
+                    
+                    // Generate the image URL
+                    const imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+                    
+                    console.log('Image uploaded successfully:', imageUrl);
+                    
+                    // Dismiss loading toast and show success
+                    toast.dismiss(loadingToast);
+                    toast.success("Image uploaded successfully!");
+                    
+                    // Pass the URL to TinyMCE
+                    cb(imageUrl, { title: file.name });
+                    
+                  } catch (err) {
+                    console.error("Image upload failed:", err);
+                    toast.dismiss(loadingToast);
+                    toast.error(`Image upload failed: ${err.message}`);
+                  }
+                };
 
     input.click();
   }
-}
+},
+ images_upload_handler: function (blobInfo, success, failure) {
+              // Alternative upload handler
+              const uploadImage = async () => {
+                try {
+                  const file = blobInfo.blob();
+                  
+                  // Validate file size
+                  if (file.size > 5 * 1024 * 1024) {
+                    throw new Error('Image size must be less than 5MB');
+                  }
+
+                  const fileId = ID.unique();
+                  await storage.createFile(BUCKET_ID, fileId, file);
+                  
+                  const imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+                  
+                  success(imageUrl);
+                } catch (error) {
+                  console.error('Upload error:', error);
+                  failure(`Upload failed: ${error.message}`);
+                }
+              };
+
+              uploadImage();
+            }
   }}
 />
 
@@ -160,7 +180,7 @@ function BlogForm({ addBlog }) {
         <button
           type="submit"
           disabled={loading}
-          className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-all w-full sm:w-auto"
+            className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-all w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Posting..." : "Add Blog"}
         </button>
