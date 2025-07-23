@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Editor } from "@tinymce/tinymce-react";
 import { ID, Permission, Role } from "appwrite";
 import { useNavigate } from "react-router-dom";
@@ -18,16 +18,32 @@ function BlogForm({ user }) {
   const [blog, setBlog] = useState({
     title: "",
     content: "",
-    userId: user?.$id || "",
-    authorName: user?.name || "",
+    userId: "",
+    authorName: "",
     imageUrl: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Set user data once available
+  useEffect(() => {
+    if (user) {
+      setBlog((prev) => ({
+        ...prev,
+        userId: user.$id || "",
+        authorName: user.name || "",
+      }));
+    }
+  }, [user]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+     if (!user || !user.$id) {
+    toast.error("Please log in to create a blog.");
+    return;
+  }
 
     if (!blog.title.trim()) {
       setError("Title is required.");
@@ -53,11 +69,7 @@ function BlogForm({ user }) {
         COLLECTION_ID,
         ID.unique(),
         {
-          title: blog.title,
-          content: blog.content,
-          userId: blog.userId,
-          authorName: blog.authorName,
-          imageUrl: blog.imageUrl,
+          ...blog,
         },
         permissions
       );
@@ -67,31 +79,6 @@ function BlogForm({ user }) {
     } catch (err) {
       console.error(err);
       toast.error("Failed to publish blog.");
-    } finally {
-      setLoading(false);
-      if (editorRef.current) {
-        editorRef.current.setMode("design");
-      }
-    }
-  };
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setLoading(true);
-    try {
-      const uploadedFile = await storage.createFile(
-        BUCKET_ID,
-        ID.unique(),
-        file
-      );
-      const url = storage.getFilePreview(BUCKET_ID, uploadedFile.$id).href;
-      setBlog((prev) => ({ ...prev, imageUrl: url }));
-      toast.success("Image uploaded!");
-    } catch (err) {
-      console.error("Upload failed:", err);
-      toast.error("Image upload failed.");
     } finally {
       setLoading(false);
     }
@@ -104,13 +91,14 @@ function BlogForm({ user }) {
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Title Field */}
         <div>
           <label className="block mb-1 text-sm font-medium text-gray-700">
             Title
           </label>
           <input
             type="text"
-            value={blog.title}
+            value={blog.title || ""}
             onChange={(e) =>
               setBlog({ ...blog, title: e.target.value })
             }
@@ -118,65 +106,95 @@ function BlogForm({ user }) {
             placeholder="Enter blog title..."
             disabled={loading}
           />
-          {error && (
-            <p className="text-red-500 text-sm mt-1">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
         </div>
 
+        {/* TinyMCE Editor */}
         <div>
           <label className="block mb-1 text-sm font-medium text-gray-700">
             Content
           </label>
           <Editor
-            apiKey={import.meta.env.VITE_TINY_API_KEY}
-            onInit={(evt, editor) => (editorRef.current = editor)}
+            apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
+            initialValue={blog.content}
             init={{
-              height: 400,
+              height: 300,
               menubar: false,
-              plugins: "link image code preview emoticons",
+              plugins: [
+                "advlist",
+                "autolink",
+                "lists",
+                "link",
+                "image",
+                "preview",
+                "anchor",
+                "searchreplace",
+                "wordcount",
+              ],
               toolbar:
-                "undo redo | bold italic underline | alignleft aligncenter alignright | bullist numlist | link image | preview emoticons",
-              placeholder: "Write your blog here...",
+                "undo redo | formatselect | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist | link image | preview",
+              content_style:
+                "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
+              automatic_uploads: true,
+              file_picker_types: "image",
+              file_picker_callback: function (cb, value, meta) {
+                if (meta.filetype === "image") {
+                  const input = document.createElement("input");
+                  input.setAttribute("type", "file");
+                  input.setAttribute("accept", "image/*");
+
+                  input.onchange = async function () {
+                    const file = input.files[0];
+                    if (!file) return;
+
+                    const loadingToast = toast.loading("Uploading image...");
+
+                    try {
+                      if (file.size > 5 * 1024 * 1024) {
+                        throw new Error("Image must be under 5MB.");
+                      }
+
+                      const fileId = ID.unique();
+                      await storage.createFile(BUCKET_ID, fileId, file);
+
+                      const imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+
+                      toast.dismiss(loadingToast);
+                      toast.success("Image uploaded!");
+                      cb(imageUrl, { title: file.name });
+                    } catch (err) {
+                      console.error("Image upload failed:", err);
+                      toast.dismiss(loadingToast);
+                      toast.error(`Upload failed: ${err.message}`);
+                    }
+                  };
+
+                  input.click();
+                }
+              },
+              images_upload_handler: async (blobInfo, success, failure) => {
+                try {
+                  const file = blobInfo.blob();
+                  if (file.size > 5 * 1024 * 1024) {
+                    throw new Error("Image must be under 5MB.");
+                  }
+
+                  const fileId = ID.unique();
+                  await storage.createFile(BUCKET_ID, fileId, file);
+
+                  const imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+                  success(imageUrl);
+                } catch (error) {
+                  console.error("Image upload error:", error);
+                  failure(`Upload failed: ${error.message}`);
+                }
+              },
             }}
+            onInit={(evt, editor) => (editorRef.current = editor)}
           />
         </div>
 
-        <div>
-          <label className="block mb-1 text-sm font-medium text-gray-700">
-            Upload Image (optional)
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            disabled={loading}
-          />
-          {blog.imageUrl && (
-            <img
-              src={blog.imageUrl}
-              alt="Uploaded preview"
-              className="mt-3 w-full h-48 object-cover rounded-lg"
-            />
-          )}
-        </div>
-
-        <div>
-          <label className="block mb-1 text-sm font-medium text-gray-700">
-            Featured Image URL (optional)
-          </label>
-          <input
-            type="text"
-            value={blog.imageUrl}
-            onChange={(e) =>
-              setBlog({ ...blog, imageUrl: e.target.value })
-            }
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-            placeholder="https://example.com/your-image.jpg"
-            disabled={loading}
-          />
-        </div>
-
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading}
