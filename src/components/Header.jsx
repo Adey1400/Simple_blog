@@ -1,15 +1,48 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
+import { migrateAuthorNames, checkMigrationNeeded } from '../utils/migrateAuthorNames';
+import { toast } from 'react-toastify';
 
 function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logoutUser } = useAuth();
+  const [migrating, setMigrating] = useState(false);
 
   const handleLogout = () => {
     logoutUser();
     navigate("/login");
+  };
+
+  const handleMigrateAuthors = async () => {
+    try {
+      setMigrating(true);
+      
+      // First check if migration is needed
+      const status = await checkMigrationNeeded();
+      
+      if (!status.needsMigration) {
+        toast.info("All blogs already have proper author names!");
+        return;
+      }
+
+      // Proceed with migration
+      const result = await migrateAuthorNames();
+      
+      if (result.updatedCount > 0) {
+        toast.success(`Successfully updated ${result.updatedCount} blog(s) with author names!`);
+        // Refresh the page to show updated data
+        window.location.reload();
+      } else {
+        toast.info("No blogs needed author name updates.");
+      }
+    } catch (error) {
+      console.error("Migration failed:", error);
+      toast.error("Failed to update author names. Please try again.");
+    } finally {
+      setMigrating(false);
+    }
   };
 
   // Hide Header on Login/Register pages
@@ -51,6 +84,15 @@ function Header() {
         >
           Create Blog
         </Link>
+
+        <button
+          onClick={handleMigrateAuthors}
+          disabled={migrating}
+          className="bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-2 rounded-xl text-xs font-medium transition"
+          title="Fix missing author names in existing blogs"
+        >
+          {migrating ? "Fixing..." : "Fix Authors"}
+        </button>
 
         <button
           onClick={handleLogout}

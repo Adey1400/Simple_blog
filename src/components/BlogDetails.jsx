@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { database, DATABASE_ID, COLLECTION_ID } from "../appwriteConfig";
+import { database, DATABASE_ID, COLLECTION_ID, account } from "../appwriteConfig";
 import { toast } from "react-toastify";
 import Blog from "../assets/Breaking.jpg";
 import { extractFirstImageFromContent } from "../utils/extractImage";
@@ -10,6 +10,7 @@ function BlogDetails() {
   const navigate = useNavigate();
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
 
   //image preview function
   const getPreviewImage = (blog) => {
@@ -22,7 +23,33 @@ function BlogDetails() {
   const cleanedContent = blog?.content
   ? blog.content.replace(/<img[^>]*>/g, '')
   : '';
+
+  const getAuthorName = (blog) => {
+    // First try to use the stored authorName
+    if (blog.authorName && blog.authorName.trim() !== "") {
+      return blog.authorName;
+    }
+    
+    // If no authorName and this is the current user's blog, use current user info
+    if (currentUser && blog.userId === currentUser.$id) {
+      return currentUser.name || currentUser.email || "You";
+    }
+    
+    // Fallback to Unknown Author
+    return "Unknown Author";
+  };
+
   useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const user = await account.get();
+        setCurrentUser(user);
+      } catch (error) {
+        // User not logged in, which is fine
+        setCurrentUser(null);
+      }
+    };
+
     const fetchBlog = async () => {
       try {
         const res = await database.getDocument(DATABASE_ID, COLLECTION_ID, id);
@@ -35,6 +62,7 @@ function BlogDetails() {
       }
     };
 
+    fetchCurrentUser();
     fetchBlog();
   }, [id]);
 
@@ -73,9 +101,14 @@ function BlogDetails() {
   }}
       />
 
-      <p className="text-xs sm:text-sm text-gray-500 italic">
-        🕒 {new Date(blog.$createdAt).toLocaleString()}
-      </p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+        <p className="text-xs sm:text-sm text-gray-600">
+          ✍️ By: <span className="font-medium">{getAuthorName(blog)}</span>
+        </p>
+        <p className="text-xs sm:text-sm text-gray-500 italic">
+          🕒 {new Date(blog.$createdAt).toLocaleString()}
+        </p>
+      </div>
 
       <div
         className="text-gray-700 leading-relaxed prose max-w-none"
