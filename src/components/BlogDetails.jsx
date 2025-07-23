@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { database, DATABASE_ID, COLLECTION_ID } from "../appwriteConfig";
 import { toast } from "react-toastify";
 import Blog from "../assets/Breaking.jpg";
+import { extractFirstImageFromContent } from "../utils/extractImage";
 
 function BlogDetails() {
   const { id } = useParams();
@@ -10,6 +11,17 @@ function BlogDetails() {
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  //image preview function
+  const getPreviewImage = (blog) => {
+    if (blog.imageUrl) return blog.imageUrl;
+    const contentImage = extractFirstImageFromContent(blog.content);
+    if (contentImage) return contentImage;
+
+    return Blog;
+  };
+  const cleanedContent = blog?.content
+  ? blog.content.replace(/<img[^>]*>/g, '')
+  : '';
   useEffect(() => {
     const fetchBlog = async () => {
       try {
@@ -53,9 +65,12 @@ function BlogDetails() {
       </h2>
 
       <img
-        src={blog.imageUrl || Blog}
+        src={getPreviewImage(blog)}
         alt="cover"
         className="w-full h-64 object-cover rounded-lg"
+         onError={(e) => {
+         e.target.src = Blog;
+  }}
       />
 
       <p className="text-xs sm:text-sm text-gray-500 italic">
@@ -64,7 +79,7 @@ function BlogDetails() {
 
       <div
         className="text-gray-700 leading-relaxed prose max-w-none"
-        dangerouslySetInnerHTML={{ __html: blog.content }}
+        dangerouslySetInnerHTML={{ __html: cleanedContent }}
       />
 
       <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-4 pt-4 border-t border-gray-100">

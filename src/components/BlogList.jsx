@@ -5,24 +5,24 @@ import { IoTimeOutline, IoTrashOutline } from "react-icons/io5";
 import { FiArrowRight } from "react-icons/fi";
 import { toast } from "react-toastify";
 import Break from "../assets/Breaking.jpg"; // default image
-import { extractFirstImageFromContent, extractTextFromContent } from "../utils/extractImage";
+import {
+  extractFirstImageFromContent,
+  extractTextFromContent,
+} from "../utils/extractImage";
 
 function BlogList() {
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
- 
-    const getPreviewImage = (blog) => {
 
+  const getPreviewImage = (blog) => {
     if (blog.imageUrl) {
       return blog.imageUrl;
     }
-    
 
     const contentImage = extractFirstImageFromContent(blog.content);
     if (contentImage) {
       return contentImage;
     }
-    
 
     return Break;
   };
@@ -57,23 +57,27 @@ function BlogList() {
   };
 
   if (loading) {
-    return <div className="text-center text-gray-400 mt-6">Loading blogs...</div>;
+    return (
+      <div className="text-center text-gray-400 mt-6">Loading blogs...</div>
+    );
   }
 
   if (blogs.length === 0) {
-    return <div className="text-center text-gray-400 mt-6">No blogs found.</div>;
+    return (
+      <div className="text-center text-gray-400 mt-6">No blogs found.</div>
+    );
   }
 
   return (
     <div className="max-w-6xl mx-auto grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
-       {blogs.map((blog) => {
+      {blogs.map((blog) => {
         const previewImage = getPreviewImage(blog);
-        
+
         return (
           <div
             key={blog.$id}
             className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition duration-300 border border-gray-200 flex flex-col"
-            style={{ minHeight: '400px' }}
+            style={{ minHeight: "400px" }}
           >
             {/* Image */}
             <div className="h-48 overflow-hidden">
@@ -88,16 +92,18 @@ function BlogList() {
               />
             </div>
 
-          {/* Content */}
-         <div className="p-4 flex flex-col flex-grow">
+            {/* Content */}
+            <div className="p-4 flex flex-col flex-grow">
               <div>
                 <h2 className="text-lg font-bold text-gray-800 line-clamp-2 mb-3">
                   {blog.title}
                 </h2>
-                
+                <p className="text-sm text-gray-500 mt-1">
+                  ✍️ By: {blog.authorName || "Unknown Author"}
+                </p>
                 <div className="flex justify-between items-center text-sm text-gray-500">
                   <span className="bg-gray-100 px-2 py-1 rounded">
-                    {blog.authorName}
+                    {blog.authorName || "Unknown"}
                   </span>
                   <div className="flex items-center">
                     <IoTimeOutline className="mr-1" />
@@ -106,11 +112,11 @@ function BlogList() {
                 </div>
               </div>
 
-            {/* Spacer to push buttons to bottom */}
-            <div className="flex-grow"></div>
+              {/* Spacer to push buttons to bottom */}
+              <div className="flex-grow"></div>
 
-            {/* Read & Delete buttons */}
-            <div className="flex justify-between items-center pt-3 mt-4 border-t border-gray-100">
+              {/* Read & Delete buttons */}
+              <div className="flex justify-between items-center pt-3 mt-4 border-t border-gray-100">
                 <Link
                   to={`/blog/${blog.$id}`}
                   className="text-blue-600 hover:text-blue-800 font-medium flex items-center"

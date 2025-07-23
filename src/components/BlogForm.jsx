@@ -1,10 +1,10 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ID } from "appwrite";
 import { Editor } from "@tinymce/tinymce-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { database, DATABASE_ID, COLLECTION_ID, storage, BUCKET_ID } from "../appwriteConfig";
-
+import { database, DATABASE_ID, COLLECTION_ID, storage, BUCKET_ID , account} from "../appwriteConfig";
+import "./tiny.css"
 function BlogForm({ addBlog }) {
   const navigate = useNavigate();
   const [blog, setBlog] = useState({
@@ -19,6 +19,26 @@ function BlogForm({ addBlog }) {
   const [error, setError] = useState("");
   const editorRef = useRef(null);
 
+
+  //fetch user details
+ 
+  useEffect(()=>{
+     const fetchUserDetails = async () => {
+  try{
+     const user = await account.get();
+     setBlog((prev)=>({
+      ...prev,
+      userId: user.$id,
+      authorName:user.name || user.email, // Fallback to email if name is not available
+     }))
+  }catch(error) {
+    console.error("Error fetching user details:", error);
+
+  }
+}
+    fetchUserDetails()
+  },[])
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -28,7 +48,7 @@ function BlogForm({ addBlog }) {
         title: blog.title,
         content: editorRef.current.getContent(),
         userId: blog.userId,
-        authorName: blog.authorName,
+        authorName:blog.authorName,
         imageUrl: blog.imageUrl, // Optional
       });
 
@@ -49,6 +69,8 @@ function BlogForm({ addBlog }) {
       setLoading(false);
     }
   };
+
+
 
   return (
     <form
@@ -80,99 +102,102 @@ function BlogForm({ addBlog }) {
         <label className="block mb-1 text-sm font-medium text-gray-700">
           Content
         </label>
-   <Editor
-          apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
-          onInit={(evt, editor) => (editorRef.current = editor)}
-          init={{
-            height: 300,
-            menubar: false,
-            plugins: [
-              "advlist", "autolink", "lists", "link", "image", "preview", "anchor", "searchreplace", "wordcount"
-            ],
-            toolbar:
-              "undo redo | formatselect | bold italic | " +
-              "alignleft aligncenter alignright | bullist numlist | link image | preview",
-            content_style:
-              "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
-            automatic_uploads: true,
-            file_picker_types: "image",
-            file_picker_callback: function (cb, value, meta) {
-              if (meta.filetype === 'image') {
-                const input = document.createElement('input');
-                input.setAttribute('type', 'file');
-                input.setAttribute('accept', 'image/*');
+ <Editor
+  apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
+  onInit={(evt, editor) => (editorRef.current = editor)}
+  init={{
+    height: 300,
+    menubar: false,
+    plugins: [
+      "advlist", "autolink", "lists", "link", "image", "preview", "anchor", "searchreplace", "wordcount"
+    ],
+    toolbar:
+      "undo redo | formatselect | bold italic | " +
+      "alignleft aligncenter alignright | bullist numlist | link image | preview",
 
-         input.onchange = async function () {
-                  const file = input.files[0];
-                  if (!file) return;
- const loadingToast = toast.loading("Uploading image...");
+    content_style: `
+      body {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 14px;
+      }
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 1rem auto;
+      }
+    `,
 
-                  try {
-                    // Validate file size (5MB limit)
-                    if (file.size > 5 * 1024 * 1024) {
-                      throw new Error('Image size must be less than 5MB');
-                    }
+    automatic_uploads: true,
+    file_picker_types: "image",
+    
+    file_picker_callback: function (cb, value, meta) {
+      if (meta.filetype === 'image') {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
 
-                    // Validate file type
-                    if (!file.type.startsWith('image/')) {
-                      throw new Error('Please select a valid image file');
-                    }
+        input.onchange = async function () {
+          const file = input.files[0];
+          if (!file) return;
 
-                    const fileId = ID.unique();
-                    
-                    // Upload file to Appwrite storage
-                    await storage.createFile(BUCKET_ID, fileId, file);
-                    
-                    // Generate the image URL
-                    const imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
-                    
-                    console.log('Image uploaded successfully:', imageUrl);
-                    
-                    // Dismiss loading toast and show success
-                    toast.dismiss(loadingToast);
-                    toast.success("Image uploaded successfully!");
-                    
-                    // Pass the URL to TinyMCE
-                    cb(imageUrl, { title: file.name });
-                    
-                  } catch (err) {
-                    console.error("Image upload failed:", err);
-                    toast.dismiss(loadingToast);
-                    toast.error(`Image upload failed: ${err.message}`);
-                  }
-                };
+          const loadingToast = toast.loading("Uploading image...");
 
-    input.click();
-  }
-},
- images_upload_handler: function (blobInfo, success, failure) {
-              // Alternative upload handler
-              const uploadImage = async () => {
-                try {
-                  const file = blobInfo.blob();
-                  
-                  // Validate file size
-                  if (file.size > 5 * 1024 * 1024) {
-                    throw new Error('Image size must be less than 5MB');
-                  }
-
-                  const fileId = ID.unique();
-                  await storage.createFile(BUCKET_ID, fileId, file);
-                  
-                  const imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
-                  
-                  success(imageUrl);
-                } catch (error) {
-                  console.error('Upload error:', error);
-                  failure(`Upload failed: ${error.message}`);
-                }
-              };
-
-              uploadImage();
+          try {
+            if (file.size > 5 * 1024 * 1024) {
+              throw new Error('Image size must be less than 5MB');
             }
+
+            if (!file.type.startsWith('image/')) {
+              throw new Error('Please select a valid image file');
+            }
+
+            const fileId = ID.unique();
+            await storage.createFile(BUCKET_ID, fileId, file);
+
+            const imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+            
+            toast.dismiss(loadingToast);
+            toast.success("Image uploaded successfully!");
+
+            cb(imageUrl, { title: file.name });
+
+          } catch (err) {
+            console.error("Image upload failed:", err);
+            toast.dismiss(loadingToast);
+            toast.error(`Image upload failed: ${err.message}`);
+          }
+        };
+
+        input.click();
+      }
+    },
+
+    images_upload_handler: function (blobInfo, success, failure) {
+      const uploadImage = async () => {
+        try {
+          const file = blobInfo.blob();
+
+          if (file.size > 5 * 1024 * 1024) {
+            throw new Error('Image size must be less than 5MB');
+          }
+
+          const fileId = ID.unique();
+          await storage.createFile(BUCKET_ID, fileId, file);
+
+          const imageUrl = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+
+          success(imageUrl);
+        } catch (error) {
+          console.error('Upload error:', error);
+          failure(`Upload failed: ${error.message}`);
+        }
+      };
+
+      uploadImage();
+    }
   }}
 />
-
 
       </div>
 

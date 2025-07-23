@@ -1,0 +1,10 @@
+.tox-edit-area img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem auto;
+}
+
+.tox-edit-area iframe {
+  max-width: 100%;
+}
