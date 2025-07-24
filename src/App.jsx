@@ -12,7 +12,7 @@ import { PrivateRoutes } from "./utils/PrivatesRoutes";
 import { AuthProvider } from "./utils/AuthContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import MyBlogs from "./pages/MyBlogs";
 function App() {
   const [blogs, setBlogs] = useState(() => {
     const stored = localStorage.getItem("blogs");
@@ -51,6 +51,7 @@ function App() {
               />
               <Route path="/create" element={<BlogForm addBlog={addBlog} />} />
               <Route path="/blog/:id" element={<BlogDetails blogs={blogs} />} />
+              <Route path="/my-blogs" element={<MyBlogs />} />
               <Route
                 path="/edit/:id"
                 element={<EditBlog blogs={blogs} updateBlog={updateBlog} />}

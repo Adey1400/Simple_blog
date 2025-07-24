@@ -6,7 +6,7 @@ import { IoTimeOutline, IoTrashOutline } from "react-icons/io5";
 import { Query } from "appwrite";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./Loading";
-import DefaultImage from "../assets/Breaking.jpg"; // Replace with your default fallback image
+import DefaultImage from "../assets/Breaking.jpg";
 
 const MyBlogs = () => {
   const { user } = useAuth();
@@ -19,10 +19,7 @@ const MyBlogs = () => {
         const response = await database.listDocuments(
           DATABASE_ID,
           COLLECTION_ID,
-          [
-            Query.equal("userId", user.$id),
-            Query.orderDesc("$createdAt"),
-          ]
+          [Query.equal("userId", user.$id), Query.orderDesc("$createdAt")]
         );
         setBlogs(response.documents);
       } catch (error) {
@@ -43,7 +40,6 @@ const MyBlogs = () => {
     try {
       await database.deleteDocument(DATABASE_ID, COLLECTION_ID, blog.$id);
 
-      // Optional: delete associated image
       if (blog.imageUrl) {
         const imageId = blog.imageUrl.split("/").pop().split("?")[0];
         await storage.deleteFile(BUCKET_ID, imageId);
@@ -70,35 +66,33 @@ const MyBlogs = () => {
           {blogs.map((blog) => (
             <div
               key={blog.$id}
-              className="bg-gray-100 rounded-xl shadow-sm overflow-hidden flex flex-col sm:flex-row items-stretch hover:shadow-md transition relative group"
+              className="bg-white hover:bg-gray-100 rounded-xl shadow-sm overflow-hidden flex items-center transition group"
             >
               <Link
                 to={`/blog/${blog.$id}`}
-                className="flex flex-1 flex-col sm:flex-row no-underline text-gray-900"
+                className="flex flex-1 items-center no-underline text-gray-900"
               >
                 {/* Image */}
                 <img
                   src={blog.imageUrl || DefaultImage}
                   alt={blog.title}
-                  className="w-full sm:w-48 h-48 object-cover sm:rounded-l-xl"
+                  className="w-40 h-28 object-cover sm:rounded-l-xl"
                 />
 
                 {/* Content */}
-                <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between">
-                  <div>
-                    <h2 className="text-xl font-semibold mb-2 line-clamp-2">
-                      {blog.title}
-                    </h2>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <IoTimeOutline className="mr-1" />
-                      {new Date(blog.$createdAt).toLocaleDateString()}
-                    </div>
+                <div className="flex-1 px-4 py-3 flex flex-col justify-center">
+                  <h2 className="text-lg font-semibold mb-1 line-clamp-2">
+                    {blog.title}
+                  </h2>
+                  <div className="flex items-center text-sm text-gray-500">
+                    <IoTimeOutline className="mr-1" />
+                    {new Date(blog.$createdAt).toLocaleDateString()}
                   </div>
                 </div>
               </Link>
 
               {/* Delete button */}
-              <div className="p-3 sm:p-5 flex items-center">
+              <div className="pr-5 pl-2 flex items-start pt-4">
                 <button
                   onClick={() => handleDelete(blog)}
                   className="text-red-600 hover:text-red-700 transition"

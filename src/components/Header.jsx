@@ -12,7 +12,6 @@ function Header() {
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -29,7 +28,6 @@ function Header() {
     };
   }, [isMenuOpen]);
 
-  // Close menu on route change
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location.pathname]);
@@ -39,17 +37,13 @@ function Header() {
     navigate("/login");
   };
 
-  // Hide Header on Login/Register pages
   const hideOnAuthPages =
     location.pathname === "/login" || location.pathname === "/register";
   if (hideOnAuthPages) return null;
 
-  console.log("User from context:", user);
-
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 relative" ref={menuRef}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Logo */}
         <h1 className="text-xl font-bold text-gray-800">
           📝 SereneScribe
         </h1>
@@ -73,6 +67,18 @@ function Header() {
                 >
                   All Blogs
                 </Link>
+
+                <Link
+                  to="/my-blogs"
+                  className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
+                    location.pathname === '/my-blogs'
+                      ? 'bg-purple-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  My Blogs
+                </Link>
+
                 <Link
                   to="/create"
                   className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
@@ -83,6 +89,7 @@ function Header() {
                 >
                   Create Blog
                 </Link>
+
                 <button
                   onClick={handleLogout}
                   className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
@@ -122,6 +129,19 @@ function Header() {
                   >
                     📄 All Blogs
                   </Link>
+
+                  <Link
+                    to="/my-blogs"
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`block px-4 py-3 text-sm font-medium transition-colors ${
+                      location.pathname === '/my-blogs'
+                        ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    🧾 My Blogs
+                  </Link>
+
                   <Link
                     to="/create"
                     onClick={() => setIsMenuOpen(false)}
@@ -133,6 +153,7 @@ function Header() {
                   >
                     ✏️ Create Blog
                   </Link>
+
                   <button
                     onClick={() => {
                       handleLogout();
