@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { IoTimeOutline, IoTrashOutline } from "react-icons/io5";
 import { Query } from "appwrite";
 import { toast } from "react-toastify";
-import LoadingSpinner from "./Loading";
+
 import DefaultImage from "../assets/Breaking.jpg";
 
 const MyBlogs = () => {
@@ -53,7 +53,11 @@ const MyBlogs = () => {
     }
   };
 
-  if (loading) return <LoadingSpinner />;
+ if (loading) return (
+  <div className="p-6 max-w-5xl mx-auto text-gray-600 text-center text-lg">
+    Loading your blogs...
+  </div>
+);
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
