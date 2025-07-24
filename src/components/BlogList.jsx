@@ -65,7 +65,7 @@ function BlogList() {
         setBlogs(res.documents);
       } catch (error) {
         console.error("Error fetching blogs:", error);
-        toast.error("Failed to load blogs.");
+
       } finally {
         setLoading(false);
       }

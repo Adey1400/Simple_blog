@@ -13,6 +13,7 @@ import { AuthProvider } from "./utils/AuthContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MyBlogs from "./pages/MyBlogs";
+import Footer from "./components/Footer";
 function App() {
   const [blogs, setBlogs] = useState(() => {
     const stored = localStorage.getItem("blogs");
@@ -40,8 +41,10 @@ function App() {
   return (
     <AuthProvider> {/* ✅ wrap everything inside this */}
       <Router>
+        <header className="fixed top-0 left-0 w-full z-50">
         <Header />
-        <main className="min-h-screen">
+      </header>
+        <main className="min-h-screen flex-1 overflow-y-auto mt-16 mb-16 px-4">
           <Routes>
             {/* Blog Routes (protected) */}
             <Route element={<PrivateRoutes />}>
@@ -73,6 +76,7 @@ function App() {
           draggable
           theme="light"
         />
+        <Footer/>
       </Router>
     </AuthProvider>
   );

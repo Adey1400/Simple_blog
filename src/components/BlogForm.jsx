@@ -133,7 +133,7 @@ function BlogForm() {
       );
 
       toast.success("Blog published successfully!");
-      navigate("/");
+      navigate("/my-blogs");
     } catch (err) {
       console.error("Publish error:", err);
       toast.error(err.message || "Failed to publish blog");
