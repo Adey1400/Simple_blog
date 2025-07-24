@@ -89,7 +89,9 @@ function BlogDetails() {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto mt-6 px-4 sm:px-6 md:px-8 p-6 sm:p-8 bg-white rounded-xl shadow-md space-y-6">
+<div className="w-full max-w-4xl mx-auto mt-6 px-6 sm:px-10 py-8 bg-white rounded-xl shadow-md space-y-6">
+
+
       <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 break-words">
         {blog.title}
       </h2>
@@ -112,8 +114,8 @@ function BlogDetails() {
         </p>
       </div>
 
-      <div
-  className="text-gray-700 leading-relaxed prose max-w-none whitespace-pre-line"
+    <div
+  className="text-gray-700 leading-relaxed max-w-none break-words whitespace-pre-wrap prose prose-sm sm:prose-base lg:prose-lg"
   dangerouslySetInnerHTML={{ __html: cleanedContent }}
 />
 
