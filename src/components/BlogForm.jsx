@@ -61,24 +61,37 @@ function BlogForm() {
   }, [user, authChecked]);
 
  const handleImageUpload = async (file) => {
-    setUploadingImage(true);
-    try {
-      if (!user?.$id) throw new Error("Please log in to upload images.");
-      if (file.size > 5 * 1024 * 1024) throw new Error("Max image size is 5MB");
-      if (!file.type.startsWith("image/")) throw new Error("Invalid image file");
+  setUploadingImage(true);
+  const toastId = toast.info("Uploading image...", { autoClose: false }); // ⬅️ show loading toast
 
-      const fileId = ID.unique();
-      await storage.createFile(BUCKET_ID, fileId, file);
+  try {
+    if (!user?.$id) throw new Error("Please log in to upload images.");
+    if (file.size > 5 * 1024 * 1024) throw new Error("Max image size is 5MB");
+    if (!file.type.startsWith("image/")) throw new Error("Invalid image file");
 
-      const url = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
-      setBlog(prev => ({ ...prev, imageUrl: url }));
-      toast.success("Image uploaded!");
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setUploadingImage(false);
-    }
-  };
+    const fileId = ID.unique();
+    await storage.createFile(BUCKET_ID, fileId, file);
+
+    const url = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+    setBlog((prev) => ({ ...prev, imageUrl: url }));
+
+    toast.update(toastId, {
+      render: "Image uploaded!",
+      type: "success",
+      autoClose: 3000,
+      isLoading: false,
+    });
+  } catch (err) {
+    toast.update(toastId, {
+      render: err.message,
+      type: "error",
+      autoClose: 3000,
+      isLoading: false,
+    });
+  } finally {
+    setUploadingImage(false);
+  }
+};
 
 
   const handleSubmit = async (e) => {
