@@ -113,9 +113,9 @@ function BlogDetails() {
       </div>
 
       <div
-        className="text-gray-700 leading-relaxed prose max-w-none"
-        dangerouslySetInnerHTML={{ __html: cleanedContent }}
-      />
+  className="text-gray-700 leading-relaxed prose max-w-none whitespace-pre-line"
+  dangerouslySetInnerHTML={{ __html: cleanedContent }}
+/>
 
       <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-4 pt-4 border-t border-gray-100">
         <button

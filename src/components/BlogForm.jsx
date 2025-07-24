@@ -60,30 +60,26 @@ function BlogForm() {
     }
   }, [user, authChecked]);
 
-  const handleImageUpload = async (file) => {
+ const handleImageUpload = async (file) => {
     setUploadingImage(true);
     try {
-      if (!user?.$id) {
-        throw new Error("Please log in to upload images.");
-      }
-
-      const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-      if (file.size > MAX_IMAGE_SIZE) {
-        throw new Error("Image size must be less than 5MB");
-      }
-
-      if (!file.type.startsWith("image/")) {
-        throw new Error("Please select a valid image file");
-      }
+      if (!user?.$id) throw new Error("Please log in to upload images.");
+      if (file.size > 5 * 1024 * 1024) throw new Error("Max image size is 5MB");
+      if (!file.type.startsWith("image/")) throw new Error("Invalid image file");
 
       const fileId = ID.unique();
       await storage.createFile(BUCKET_ID, fileId, file);
 
-      return `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+      const url = `${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+      setBlog(prev => ({ ...prev, imageUrl: url }));
+      toast.success("Image uploaded!");
+    } catch (err) {
+      toast.error(err.message);
     } finally {
       setUploadingImage(false);
     }
   };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -134,57 +130,19 @@ function BlogForm() {
   };
 
   const editorConfig = {
-    height: 300,
-    menubar: false,
-    plugins: [
-      "advlist",
-      "autolink",
-      "lists",
-      "link",
-      "image",
-      "preview",
-      "anchor",
-      "searchreplace",
-      "wordcount",
-    ],
-    toolbar:
-      "undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link image | preview",
-    content_style:
-      "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
-    automatic_uploads: true,
-    file_picker_types: "image",
-    file_picker_callback: (cb, value, meta) => {
-      if (meta.filetype === "image") {
-        const input = document.createElement("input");
-        input.setAttribute("type", "file");
-        input.setAttribute("accept", "image/*");
-
-        input.onchange = async () => {
-          const file = input.files[0];
-          if (!file) return;
-
-          const loadingToast = toast.loading("Uploading image...");
-          try {
-            const imageUrl = await handleImageUpload(file);
-            toast.dismiss(loadingToast);
-            toast.success("Image uploaded successfully!");
-            cb(imageUrl, { title: file.name });
-          } catch (err) {
-            toast.dismiss(loadingToast);
-            toast.error(`Image upload failed: ${err.message}`);
-          }
-        };
-        input.click();
-      }
-    },
-    images_upload_handler: async (blobInfo, success, failure) => {
-      try {
-        const imageUrl = await handleImageUpload(blobInfo.blob());
-        success(imageUrl);
-      } catch (err) {
-        failure(err.message);
-      }
-    },
+     height: 500,
+  menubar: false,
+  plugins: "link image code lists",
+  toolbar:
+    "undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | code",
+  content_style: "body { white-space: pre-wrap; }",
+  forced_root_block: "",
+  force_br_newlines: true,
+  force_p_newlines: false,
+  entity_encoding: "raw",
+  verify_html: false,
+  convert_urls: false,
+  trim_span_elements: false,
   };
 
   if (userLoading || !authChecked) {
@@ -202,10 +160,9 @@ function BlogForm() {
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Title */}
         <div>
-          <label className="block mb-1 text-sm font-medium text-gray-700">
-            Title
-          </label>
+          <label className="block mb-1 text-sm font-medium text-gray-700">Title</label>
           <input
             type="text"
             value={blog.title}
@@ -217,21 +174,38 @@ function BlogForm() {
           {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
         </div>
 
+        {/* Image Upload */}
         <div>
-          <label className="block mb-1 text-sm font-medium text-gray-700">
-            Content
-          </label>
+          <label className="block mb-1 text-sm font-medium text-gray-700">Cover Image</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleImageUpload(e.target.files[0])}
+            className="block w-full text-sm text-gray-500
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0
+            file:text-sm file:font-semibold
+            file:bg-blue-50 file:text-blue-700
+            hover:file:bg-blue-100"
+            disabled={uploadingImage || loading}
+          />
+          {blog.imageUrl && (
+            <img src={blog.imageUrl} alt="Preview" className="mt-2 h-40 object-cover rounded-md" />
+          )}
+        </div>
+
+        {/* Editor */}
+        <div>
+          <label className="block mb-1 text-sm font-medium text-gray-700">Content</label>
           <Editor
             apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
             onInit={(evt, editor) => (editorRef.current = editor)}
             init={editorConfig}
             disabled={loading || uploadingImage}
           />
-          {uploadingImage && (
-            <p className="text-sm text-blue-600 mt-2">Uploading image...</p>
-          )}
         </div>
 
+        {/* Submit */}
         <button
           type="submit"
           disabled={loading || uploadingImage}
