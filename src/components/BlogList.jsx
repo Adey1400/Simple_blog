@@ -5,12 +5,10 @@ import {
   account,
   DATABASE_ID,
   COLLECTION_ID,
-  LIKES_COLLECTION_ID,
   
 } from "../appwriteConfig";
-import {ID,
-  Query,} from "appwrite"
-import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
+
+
 import { IoTimeOutline, IoTrashOutline } from "react-icons/io5";
 import { FiArrowRight } from "react-icons/fi";
 import { toast } from "react-toastify";
@@ -19,7 +17,7 @@ import { extractFirstImageFromContent } from "../utils/extractImage";
 
 function BlogList() {
   const [blogs, setBlogs] = useState([]);
-  const [liked, setLiked] = useState({});
+
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -55,37 +53,19 @@ function BlogList() {
       setBlogs(res.documents);
     } catch (error) {
       console.error("Error fetching blogs:", error);
-      toast.error("Failed to load blogs");
+
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchLikes = async (userId) => {
-    if (!userId) return;
-    
-    try {
-      const res = await database.listDocuments(
-        DATABASE_ID,
-        LIKES_COLLECTION_ID,
-        [Query.equal("userId", userId)]
-      );
-
-      const likedMap = {};
-      res.documents.forEach((doc) => {
-        likedMap[doc.blogId] = doc.$id;
-      });
-      setLiked(likedMap);
-    } catch (error) {
-      console.error("Error fetching likes:", error);
-    }
-  };
+ 
 
   useEffect(() => {
     const initialize = async () => {
       const user = await fetchCurrentUser();
       await fetchBlogs();
-      if (user) await fetchLikes(user.$id);
+
     };
     initialize();
   }, []);
@@ -103,51 +83,7 @@ function BlogList() {
     }
   };
 
-  const handleLike = async (blog) => {
-  if (!currentUser) {
-    toast.info("Please login to like blogs");
-    return;
-  }
-
-  const isLiked = liked[blog.$id] || false;
-
-  try {
-    if (isLiked) {
-      // Unlike
-      await database.deleteDocument(
-        DATABASE_ID,
-        LIKES_COLLECTION_ID,
-        liked[blog.$id] // Use the stored like document ID
-      );
-      await database.updateDocument(DATABASE_ID, COLLECTION_ID, blog.$id, {
-        likes: Math.max((blog.likes || 1) - 1, 0), // Ensure likes don't go negative
-      });
-      setLiked(prev => {
-        const newLiked = {...prev};
-        delete newLiked[blog.$id];
-        return newLiked;
-      });
-    } else {
-      // Like
-      const likeDoc = await database.createDocument(
-        DATABASE_ID,
-        LIKES_COLLECTION_ID,
-        ID.unique(),
-        {
-          blogId: blog.$id,
-          userId: currentUser.$id,
-        }
-      );
-      await database.updateDocument(DATABASE_ID, COLLECTION_ID, blog.$id, {
-        likes: (blog.likes || 0) + 1,
-      });
-      setLiked(prev => ({...prev, [blog.$id]: likeDoc.$id}));
-    }
-  } catch (error) {
-    console.error("Failed to like blog:", error);
-    toast.error("Failed to like the blog.");
-  }
-};
+  
 
   if (loading) {
     return (
@@ -204,21 +140,7 @@ function BlogList() {
               {/* Spacer to push buttons to bottom */}
               <div className="flex-grow"></div>
 
-              {/* Like button and count */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleLike(blog)}
-                  className="text-2xl transition-all duration-300"
-                  aria-label={liked[blog.$id] ? "Unlike blog" : "Like blog"}
-                >
-                  {liked[blog.$id] ? (
-                    <AiFillHeart className="text-pink-600" />
-                  ) : (
-                    <AiOutlineHeart className="text-gray-500 hover:text-pink-500" />
-                  )}
-                </button>
-                <span className="text-sm text-gray-500">{likeCount}</span>
-              </div>
+
 
               {/* Read & Delete buttons */}
               <div className="flex justify-between items-center pt-3 mt-4 border-t border-gray-100">
